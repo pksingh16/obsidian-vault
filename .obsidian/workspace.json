@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "r160a/linux/13-fetch-gdp-apps-manager-credentials.md",
+                "file": "r160a/ansible/11-fetch-credential-from-ansible-vault.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "13-fetch-gdp-apps-manager-credentials"
+              "title": "11-fetch-credential-from-ansible-vault"
             }
           }
         ]
@@ -166,11 +166,14 @@
       "bases:Create new base": false
     }
   },
-  "active": "4004adce93f81584",
+  "active": "66d80c57e77125a3",
   "lastOpenFiles": [
-    "r160a/kubernetes/12-fetch-ceph-security-credential.md",
+    "r160a/linux/10-linux_user_config.md",
+    "r160a/ceph/11-fetch-credential-from-ansible-vault.md",
     "r160a/ansible/11-fetch-credential-from-ansible-vault.md",
+    "r160a/00-index.md",
     "r160a/linux/13-fetch-gdp-apps-manager-credentials.md",
+    "r160a/kubernetes/12-fetch-ceph-security-credential.md",
     "r160a/proxmox/02-update_vm_cloudinit.md",
     "r160a/proxmox/01-vm_deletion.md",
     "r160a/cloud-foundary/10-linux_user_config.md",
@@ -178,7 +181,6 @@
     "r160a/cloud-foundary/08-cf_cleanup.md",
     "r160a/proxmox/06-snapshot_complete_setup.md",
     "r160a/linux/Fetch GDP Apps Manager Credentials.md",
-    "r160a/00-index.md",
     "ceph/desktop.ini",
     "ceph/11-fetch-credential-from-ansible-vault.md",
     "ceph",
@@ -202,8 +204,6 @@
     "r160a/proxmox/03_stop_start_vm.md",
     "r160a/proxmox/02_update_vm_cloudinit.md",
     "r160a/proxmox/01_vm_deletion.md",
-    "r160a/proxmox/04_snapshot_initial_setup.md",
-    "r160a/proxmox/06_snapshot_complete_setup.md",
     "r160a/proxmox",
     "r160a/Untitled.canvas"
   ]
