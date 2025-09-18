@@ -1,3 +1,7 @@
+---
+tags:
+  - fetch-credentials
+---
 # GDP Platform Commands
 
 **Copyable command snippets** and a brief description of **where each command is executed**. You can save it as, for example, `ansible_k8s_commands.md`.
