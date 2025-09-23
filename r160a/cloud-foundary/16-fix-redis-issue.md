@@ -73,6 +73,16 @@ cf delete-service redis-notification -f
 cf delete-service ivv-redis-service -f
 # Wait for all the redis-service to be deleted (can check in cf uaa console login under services filter redis)
 
+# In case it doesnot purge things properly and cf s | grep redis ahows delete failed
+
+######################################################################
+for svc in $(cf services | grep redis | awk '{print $1}'); do
+    guid=$(cf service $svc --guid)
+    echo "Purging service: $svc, GUID: $guid"
+    cf curl -X DELETE /v2/service_instances/$guid?purge=true
+done
+#######################################################################
+
 # How to delete all Redis Helm releases except minibroker:
 helm list -n minibroker -o json | jq -r '.[] | select(.name != "minibroker") | .name' | xargs -n1 -I{} helm uninstall {} -n minibroker
 
