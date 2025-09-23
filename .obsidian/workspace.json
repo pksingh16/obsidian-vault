@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "r160a/cloud-foundary/14-cf-update-environment.md",
+                "file": "r160a/windows/19-activate-windows.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "14-cf-update-environment"
+              "title": "19-activate-windows"
             }
           }
         ]
@@ -168,17 +168,25 @@
   },
   "active": "66d80c57e77125a3",
   "lastOpenFiles": [
-    "r160a/00-index.md",
     "r160a/readme.md",
+    "r160a/kubernetes/17-fix-apps-cluster-unavailable-error-in-rancher.md",
+    "r160a/cloud-foundary/15-restart-all-cf-apps-in-dependency-order.md",
+    "r160a/ansible/11-fetch-credential-from-ansible-vault.md",
+    "r160a/windows/19-activate-windows.md",
+    "r160a/postgresql/18-postgresql-cheatsheet.md",
+    "r160a/windows",
+    "r160a/linux/10-linux_user_config.md",
+    "r160a/postgresql",
+    "r160a/cloud-foundary/16-fix-redis-issue.md",
+    "r160a/linux/13-fetch-gdp-apps-manager-credentials.md",
+    "r160a/proxmox/03-stop_start_vm.md",
     "r160a/cloud-foundary/14-cf-update-environment.md",
+    "r160a/00-index.md",
     "r160a/cloud-foundary/08-cf_cleanup.md",
     "r160a/cloud-foundary/09-cf_org_space_creation.md",
-    "r160a/ansible/11-fetch-credential-from-ansible-vault.md",
     "r160a/kubernetes/12-fetch-rook-ceph-security-credential.md",
-    "r160a/linux/13-fetch-gdp-apps-manager-credentials.md",
     "r160a/ceph/07-ceph_cleanup_residual_pvc_csi_volumes.md",
     "r160a/proxmox/06-snapshot_complete_setup.md",
-    "r160a/linux/10-linux_user_config.md",
     "r160a/ceph/11-fetch-credential-from-ansible-vault.md",
     "r160a/proxmox/02-update_vm_cloudinit.md",
     "r160a/proxmox/01-vm_deletion.md",
@@ -190,21 +198,13 @@
     "Untitled.canvas",
     "r160a/proxmox/05-snapshot_deletion.md",
     "r160a/proxmox/04-snapshot_initial_setup.md",
-    "r160a/proxmox/03-stop_start_vm.md",
     "r160a/cloud-foundary/07-ceph_cleanup_residual_pvc_csi_volumes.md",
-    "r160a/cloud-foundary/7_ceph_cleanup.md",
-    "r160a/cloud-foundary/7_ceph_cleanup_residual_pvc_csi_volumes.md",
-    "r160a/Proxmox Command Highlights.md",
-    "r160a/cloud-foundary/8_cf_cleanup.md",
     "r160a/linux/desktop.ini",
     "r160a/docker",
     "r160a/linux",
     "r160a/kubernetes",
     "r160a/ansible",
     "r160a/cloud-foundary",
-    "r160a/ceph",
-    "r160a/proxmox/03_stop_start_vm.md",
-    "r160a/proxmox",
     "r160a/Untitled.canvas"
   ]
 }
