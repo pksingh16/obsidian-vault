@@ -1,4 +1,15 @@
-# Restart All Applications
+
+# Login to CF Org and Space
+
+**Where to execute:** On the **APPS Container**.
+
+```bash
+paas cf-login
+
+cf t -o r160a -s stable
+```
+
+# Restart All CF Applications in Dependency Order
 
 ```bash
 #!/bin/bash
