@@ -153,3 +153,104 @@ cf bind-service ids-notification-sp redis-notification
 cf start ids-notification-sp
 
 ```
+
+## Updated script (use either this or the one above)
+
+```bash
+#!/bin/bash
+
+# Function to extract real app names from a Redis service
+get_apps() {
+  cf service "$1" \
+    | awk '/bound apps:/, /tags:/ {print}' \
+    | tail -n +2 \
+    | grep -Ev '^(name|Upgrades|tags:)' \
+    | awk '{print $1}' \
+    | sed '/^$/d'
+}
+
+declare -A service_apps_map
+
+echo "Collecting Redis services..."
+services=$(cf s | grep redis | awk '{print $1}')
+
+echo "Saving original app bindings..."
+for s in $services; do
+  apps=$(get_apps "$s")
+  service_apps_map[$s]="$apps"
+  echo "Service $s has apps: ${service_apps_map[$s]}"
+done
+
+```
+
+1. Stopping apps...
+    ```bash
+    echo "Stopping apps..."
+    for s in $services; do
+      apps=${service_apps_map[$s]}
+      for a in $apps; do
+        echo "Stopping app: $a"
+        cf stop "$a"
+      done
+    done
+    
+    ```
+
+2. Unbinding apps from Redis services...
+    ```bash
+    echo "Unbinding apps from Redis services..."
+    for s in $services; do
+      apps=${service_apps_map[$s]}
+      for a in $apps; do
+        echo "Unbinding $s from $a"
+        cf unbind-service "$a" "$s"
+      done
+    done
+    
+    ```
+
+3. Deleting Redis services...
+    ```bash
+    echo "Deleting Redis services..."
+    for s in $services; do
+      echo "Deleting service: $s"
+      cf delete-service "$s" -f
+    done
+    
+    ```
+
+4. Recreating Redis services (redis 7-2-4)...
+    ```bash
+    echo "Recreating Redis services (redis 7-2-4)..."
+    for s in $services; do
+      echo "Recreating service: $s"
+      cf create-service redis 7-2-4 "$s"
+    done
+    
+    ```
+
+5. Rebinding original apps to recreated services...
+    ```bash
+    echo "Rebinding original apps to recreated services..."
+    for s in $services; do
+      apps=${service_apps_map[$s]}
+      for a in $apps; do
+        echo "Binding $s to $a"
+        cf bind-service "$a" "$s"
+      done
+    done
+    ```
+
+6. Starting apps...
+    ```bash
+    echo "Starting apps..."
+    for s in $services; do
+      apps=${service_apps_map[$s]}
+      for a in $apps; do
+        echo "Starting app: $a"
+        cf start "$a"
+      done
+    done
+    
+    echo "Redis service cycle completed successfully."
+    ```
