@@ -66,7 +66,6 @@ IDS_APPS=(
 "ids-procedure-information-sp"
 "ids-assets-server"
 "prometheus"
-"ids-technical-config-du"
 "ids-data-migration-sp"
 )
 
@@ -83,7 +82,6 @@ CCTV_APPS=(
 "vms-automation-scheduler"
 "vms-edge-proxy-ui"
 "vms-showcase-ui"
-"cctv-technical-config-du"
 "cctv-multimedia"
 )
 
