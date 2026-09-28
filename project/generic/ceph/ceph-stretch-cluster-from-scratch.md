@@ -3,18 +3,20 @@
 This runbook builds a new seven-node Proxmox VE cluster and a Ceph stretch cluster
 across two data sites with one witness:
 
-For expanding an existing cluster and replacing its witness, use
-[[ceph-setup|Proxmox Ceph Stretch Cluster Expansion and Witness Replacement]].
+For other operations, use the [Ceph runbook index](ceph-setup.md). The canonical
+production bond, VLAN, and IP assignments are in
+[Production Network Configuration](ceph-network-configuration.md).
 
 | Site | Proxmox nodes | Ceph services |
 | --- | --- | --- |
 | OCC | `occ1`, `occ2`, `occ3` | OSDs on all three; MONs on `occ1` and `occ2` |
 | BOCC | `bocc1`, `bocc2`, `bocc3` | OSDs on all three; MONs on `bocc1` and `bocc2` |
-| Witness | `witness` | One MON only; no OSD |
+| Witness | `quorum` | One MON, no OSD; may host VMs on shared Ceph |
 
 The final Ceph monitor layout is five monitors, not seven: two at OCC, two at BOCC,
 and one tiebreaker at the witness site. Managers should run on data-site monitor nodes,
-not on the witness.
+not on the witness. The witness may run QEMU VMs, but every VM disk must reside on
+shared Ceph storage; there are no Proxmox containers or node-local VM disks.
 
 > [!CAUTION]
 > This procedure is for an empty, new environment. Commands that create OSDs destroy
@@ -25,7 +27,7 @@ not on the witness.
 
 Ceph stretch mode and Proxmox quorum are separate systems:
 
-- Ceph uses `mon.witness` to choose between OCC and BOCC during a site split.
+- Ceph uses `mon.quorum` to choose between OCC and BOCC during a site split.
 - Proxmox uses Corosync votes from all seven Proxmox nodes.
 - The Ceph witness is not a substitute for a Proxmox Corosync QDevice.
 - Proxmox discourages adding a QDevice to an odd-sized seven-node cluster.
@@ -38,42 +40,51 @@ load and during link degradation.
 
 Use independent physical networks where possible:
 
-| Network | Participants | Purpose | Guidance |
-| --- | --- | --- | --- |
-| Management | All nodes | GUI, API, SSH | Routed as required |
-| Corosync link 0 | All nodes | Primary Proxmox quorum | Dedicated, under 5 ms |
-| Corosync link 1 | All nodes | Redundant Proxmox quorum | Different physical path |
-| Ceph public | All seven nodes | MON, client, OSD public traffic | 10 Gb/s or faster |
-| Ceph cluster | Six OSD nodes | Replication and recovery | 25 Gb/s or faster |
-| Migration | Six compute nodes | VM live migration | Dedicated high bandwidth |
+| VLAN | Network | Participants | Purpose | Production path |
+| --- | --- | --- | --- | --- |
+| 111 | Management | All nodes | GUI, API, SSH, cluster join | `bond0` / `vmbr0` |
+| 114 | Corosync | All nodes | Proxmox quorum | `bond0` / `vmbr0` under 5 ms |
+| 115 | Migration | All nodes | VM live migration | `bond0` / `vmbr0` |
+| 117 | Ceph public | All nodes | MON, client, OSD public traffic | `bond0` / `vmbr0` |
+| 118 | Ceph cluster | Six OSD nodes | Replication and recovery | `bond1` / `vmbr1` |
+| 125 | Administration | All nodes | Configuration and default route | `bond0` / `vmbr0` |
 
-The witness needs Corosync and Ceph public connectivity but does not need a Ceph
-cluster-network interface because it has no OSDs.
+Production has one logical Corosync network, VLAN 114. Its physical resilience comes
+from LACP across `nic0`/`nic2` and the redundant Server Farm switches; VLAN 115 is
+migration, not a second Corosync ring. `quorum` needs Corosync and Ceph public
+connectivity but has no VLAN 118 cluster-network interface because it has no OSDs.
 
 ## 2. Address and Hardware Worksheet
 
 Complete this table before installation. Use static IP addresses and final hostnames;
 changing them after creating the Proxmox cluster is not supported as a normal action.
 
-| Node | Management | Corosync 0 | Corosync 1 | Ceph public | Ceph cluster | OSD disks |
+| Node | Management 111 | Corosync 114 | Migration 115 | Ceph public 117 | Ceph cluster 118 | Admin 125 |
 | --- | --- | --- | --- | --- | --- | --- |
-| `occ1` | `<ip>` | `<ip>` | `<ip>` | `<ip>` | `<ip>` | `<devices>` |
-| `occ2` | `<ip>` | `<ip>` | `<ip>` | `<ip>` | `<ip>` | `<devices>` |
-| `occ3` | `<ip>` | `<ip>` | `<ip>` | `<ip>` | `<ip>` | `<devices>` |
-| `bocc1` | `<ip>` | `<ip>` | `<ip>` | `<ip>` | `<ip>` | `<devices>` |
-| `bocc2` | `<ip>` | `<ip>` | `<ip>` | `<ip>` | `<ip>` | `<devices>` |
-| `bocc3` | `<ip>` | `<ip>` | `<ip>` | `<ip>` | `<ip>` | `<devices>` |
-| `witness` | `<ip>` | `<ip>` | `<ip>` | `<ip>` | N/A | None |
+| `occ1` | `10.50.1.10/26` | `10.50.1.200/26` | `10.50.2.10/25` | `10.50.3.10/25` | `10.50.3.140/25` | `10.50.7.69/26` |
+| `occ2` | `10.50.1.11/26` | `10.50.1.201/26` | `10.50.2.11/25` | `10.50.3.11/25` | `10.50.3.141/25` | `10.50.7.70/26` |
+| `occ3` | `10.50.1.12/26` | `10.50.1.202/26` | `10.50.2.12/25` | `10.50.3.12/25` | `10.50.3.142/25` | `10.50.7.81/26` |
+| `bocc1` | `10.50.1.20/26` | `10.50.1.203/26` | `10.50.2.13/25` | `10.50.3.20/25` | `10.50.3.150/25` | `10.50.7.72/26` |
+| `bocc2` | `10.50.1.21/26` | `10.50.1.204/26` | `10.50.2.14/25` | `10.50.3.21/25` | `10.50.3.151/25` | `10.50.7.73/26` |
+| `bocc3` | `10.50.1.22/26` | `10.50.1.205/26` | `10.50.2.15/25` | `10.50.3.15/25` | `10.50.3.145/25` | `10.50.7.74/26` |
+| `quorum` | `10.50.1.31/26` | `10.50.1.207/26` | `10.50.2.31/25` | `10.50.3.31/25` | N/A | `10.50.7.118/26` |
+
+> [!CAUTION]
+> Preserve the observed `bocc3` Ceph-public address `10.50.3.15/25`; do not infer
+> `10.50.3.22/25` from the sequence. Verify the observed address against the formal
+> network source of truth before deployment.
 
 Record these cluster-wide values:
 
 ```text
 Proxmox cluster name: <cluster_name>
-Corosync link 0 network: <cidr>
-Corosync link 1 network: <cidr>
-Ceph public network: <cidr>
-Ceph cluster network: <cidr>
-Migration network: <cidr>
+Management network (VLAN 111): 10.50.1.0/26
+Corosync network (VLAN 114): 10.50.1.192/26
+Migration network (VLAN 115): 10.50.2.0/25
+Ceph public network (VLAN 117): 10.50.3.0/25
+Ceph cluster network (VLAN 118): 10.50.3.128/25
+Administration network (VLAN 125): 10.50.7.64/26
+Default gateway: 10.50.7.126
 Supported Ceph release: <release>
 Ceph repository: <enterprise|no-subscription|manual>
 ```
@@ -88,9 +99,14 @@ Install the same supported Proxmox VE release on all seven servers. During insta
 
 1. Set each final hostname exactly as listed in the worksheet.
 2. Configure static management and Corosync addresses.
-3. Keep the operating-system disk separate from Ceph OSD disks.
-4. Configure redundant DNS and NTP sources reachable from both sites.
-5. Do not create guests or cluster-local configuration on nodes that will join later.
+3. Configure `bond0` (`nic0` + `nic2`) as LACP beneath VLAN-aware `vmbr0`.
+4. On OCC/BOCC, configure `bond1` (`nic1` + `nic3`) as LACP beneath VLAN-aware
+    `vmbr1`; do not configure VLAN 118 on `quorum`.
+5. Configure host L3 subinterfaces for VLANs 111, 114, 115, 117, 125, plus VLAN 118
+    on OCC/BOCC only, using the canonical address table.
+6. Keep the operating-system disk separate from Ceph OSD disks.
+7. Configure redundant DNS and NTP sources reachable from both sites.
+8. Do not create VMs or cluster-local configuration on nodes that will join later.
 
 After installation, configure the appropriate supported Proxmox repository and update
 every node. Do not mix enterprise, test, or no-subscription repositories unintentionally:
@@ -117,7 +133,7 @@ Ensure every node resolves all seven final hostnames consistently through DNS or
 `/etc/hosts`:
 
 ```bash
-getent hosts occ1 occ2 occ3 bocc1 bocc2 bocc3 witness
+getent hosts occ1 occ2 occ3 bocc1 bocc2 bocc3 quorum
 ```
 
 Verify that `/etc/hostname`, `/etc/hosts`, DNS, and the management certificate name
@@ -125,12 +141,33 @@ agree before creating the cluster.
 
 ## 4. Validate Networks Before Clustering
 
-From every node, test every peer over both Corosync links. Capture latency, jitter, and
-packet loss during a representative load test, not only when links are idle:
+First verify LACP membership, VLAN-aware bridges, host addresses, and routes. On every
+node:
 
 ```bash
-ping -c 100 <peer_corosync0_ip>
-ping -c 100 <peer_corosync1_ip>
+cat /proc/net/bonding/bond0
+bridge vlan show dev vmbr0
+ip -br address
+ip route
+```
+
+On OCC and BOCC nodes also verify `bond1`, `vmbr1`, and VLAN 118:
+
+```bash
+cat /proc/net/bonding/bond1
+bridge vlan show dev vmbr1
+ip address show dev vmbr1.118
+```
+
+On `quorum`, confirm VLAN 118 is absent. Then test every peer over VLAN 114 and
+capture latency, jitter, and packet loss during representative load:
+
+```bash
+ping -c 100 -I <local_vlan114_ip> <peer_vlan114_ip>
+ping -c 5 -I <local_vlan115_ip> <peer_vlan115_ip>
+ping -c 5 -I <local_vlan117_ip> <peer_vlan117_ip>
+# OCC and BOCC only:
+ping -c 5 -I <local_vlan118_ip> <peer_vlan118_ip>
 ```
 
 There must be no packet loss and latency must remain below 5 ms. Test MTU end to end:
@@ -146,42 +183,34 @@ Use only the line matching the configured MTU. Also verify:
 - SSH TCP 22 and Proxmox management TCP 8006 are reachable as required.
 - Ceph MON TCP 3300 and 6789 is permitted on the Ceph public network.
 - Ceph OSD TCP 6800-7568 is permitted between Ceph nodes.
-- The Ceph public and cluster networks do not share a congested Corosync link.
-- Corosync links use different physical failure paths, not merely different VLANs on
-  one cable or one switch.
+- The Ceph public network does not congest Corosync on `bond0`/`vmbr0`.
+- VLAN 114 remains available after either `bond0` member or Server Farm switch fails.
+- VLAN 118 remains available after either `bond1` member or Storage switch fails.
 
 ## 5. Create the Proxmox Cluster
 
-Create the cluster on `occ1`. Replace the placeholders with `occ1`'s local Corosync
-addresses:
+Create the cluster on `occ1` using its VLAN 114 Corosync address:
 
 ```bash
-pvecm create <cluster_name> \
-    --link0 <occ1_corosync0_ip>,priority=20 \
-    --link1 <occ1_corosync1_ip>,priority=10
+pvecm create <cluster_name> --link0 10.50.1.200
 
 pvecm status
 systemctl status corosync --no-pager
 journalctl -b -u corosync --no-pager -n 100
 ```
 
-The higher-priority link is preferred. Each link must use the same link number and
-priority scheme on every node.
-
-Join the other six nodes one at a time. Run this on the node being joined, using an
-existing cluster node's Corosync link 0 address as `<cluster_ip>` and that joining
-node's own local addresses for `--link0` and `--link1`:
+Join the other six nodes one at a time. Run this on the joining node, using `occ1`'s
+VLAN 111 management address as the seed and the joining node's VLAN 114 address as
+its Corosync `link0`:
 
 ```bash
-pvecm add <cluster_ip> \
-    --link0 <joining_node_corosync0_ip>,priority=20 \
-    --link1 <joining_node_corosync1_ip>,priority=10
+pvecm add 10.50.1.10 --link0 <joining_node_vlan114_ip>
 ```
 
 Use this order and validate after each join:
 
 ```text
-occ2, occ3, bocc1, bocc2, bocc3, witness
+occ2, occ3, bocc1, bocc2, bocc3, quorum
 ```
 
 From `occ1` after every join:
@@ -191,8 +220,8 @@ pvecm status
 pvecm nodes
 ```
 
-At completion, all seven nodes must be listed and `Quorate` must be `Yes`. Also verify
-both Corosync links from each node:
+At completion, all seven nodes must be listed and `Quorate` must be `Yes`. Verify the
+VLAN 114 Corosync link from each node:
 
 ```bash
 journalctl -b -u corosync --no-pager | grep -E 'link:|host:'
@@ -220,8 +249,8 @@ the OSD replication network:
 
 ```bash
 pveceph init \
-    --network <ceph_public_cidr> \
-    --cluster-network <ceph_cluster_cidr>
+    --network 10.50.3.0/25 \
+    --cluster-network 10.50.3.128/25
 ```
 
 Verify the configuration is distributed by `pmxcfs`:
@@ -247,19 +276,19 @@ Run each command on the named node, using that node's Ceph public IP:
 
 ```bash
 # On occ1
-pveceph mon create --mon-address <occ1_ceph_public_ip>
+pveceph mon create --mon-address 10.50.3.10
 
 # On occ2
-pveceph mon create --mon-address <occ2_ceph_public_ip>
+pveceph mon create --mon-address 10.50.3.11
 
 # On bocc1
-pveceph mon create --mon-address <bocc1_ceph_public_ip>
+pveceph mon create --mon-address 10.50.3.20
 
 # On bocc2
-pveceph mon create --mon-address <bocc2_ceph_public_ip>
+pveceph mon create --mon-address 10.50.3.21
 
-# On witness
-pveceph mon create --mon-address <witness_ceph_public_ip>
+# On quorum
+pveceph mon create --mon-address 10.50.3.31
 ```
 
 Use `--mon-address`, not `--mon-addr`. Check quorum after each monitor is created:
@@ -297,7 +326,7 @@ Verify one manager is active and the others are standby:
 ceph mgr stat
 ```
 
-Do not place a manager on `witness` unless there is a separately justified need.
+Do not place a manager on `quorum` unless there is a separately justified need.
 
 ## 10. Build the OSD CRUSH Site Hierarchy
 
@@ -371,7 +400,7 @@ ceph mon set_location occ1 datacenter=occ
 ceph mon set_location occ2 datacenter=occ
 ceph mon set_location bocc1 datacenter=bocc
 ceph mon set_location bocc2 datacenter=bocc
-ceph mon set_location witness datacenter=witness
+ceph mon set_location quorum datacenter=witness
 ceph mon dump -f json-pretty
 ```
 
@@ -457,10 +486,10 @@ Confirm:
 
 ## 15. Enable Ceph Stretch Mode
 
-Run from `occ1`, explicitly naming `mon.witness` as the tiebreaker:
+Run from `occ1`, explicitly naming `mon.quorum` as the tiebreaker:
 
 ```bash
-ceph mon enable_stretch_mode witness stretch_rule datacenter
+ceph mon enable_stretch_mode quorum stretch_rule datacenter
 ```
 
 Current Ceph releases automatically select the `connectivity` monitor election
@@ -522,20 +551,20 @@ Configure the dedicated migration network in Datacenter options or
 `/etc/pve/datacenter.cfg`:
 
 ```text
-migration: secure,network=<migration_cidr>
+migration: secure,network=10.50.2.0/25
 ```
 
 Before enabling HA:
 
 - Verify the watchdog configuration on every compute node.
-- Verify both Corosync links and their independent failure paths.
-- Confirm guest CPU compatibility for live migration.
+- Verify VLAN 114 Corosync remains healthy through each `bond0` member/switch path.
+- Confirm VM CPU compatibility for live migration.
 - Create HA groups or rules that reflect OCC and BOCC placement policy.
 - Ensure the surviving site has enough CPU, memory, and Ceph capacity for failover.
-- Document whether a site outage should restart all guests or only critical services.
+- Document whether a site outage should restart all VMs or only critical services.
 
 Ceph data availability does not guarantee enough compute capacity to restart every
-guest at one site.
+VM at one site.
 
 ## 18. Final Acceptance Checks
 
@@ -563,11 +592,11 @@ The deployment is complete only when:
 
 - All seven Proxmox nodes are online and Corosync is quorate.
 - Corosync latency remains below 5 ms with no loss during load.
-- Both Corosync links are operational over separate physical paths.
+- VLAN 114 Corosync is operational through the redundant LACP physical paths.
 - Exactly five Ceph monitors exist and all are in quorum.
 - `occ1`/`occ2` monitor locations are `datacenter=occ`.
 - `bocc1`/`bocc2` monitor locations are `datacenter=bocc`.
-- `witness` is the tiebreaker at `datacenter=witness`.
+- `quorum` is the tiebreaker at `datacenter=witness`.
 - All OSDs are beneath the correct OCC or BOCC CRUSH hosts.
 - Every PG is `active+clean` and every OSD is `up` and `in`.
 - Replicated pools use `stretch_rule`, `size=4`, and `min_size=2`.

@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "project/generic/ceph/ceph-setup.md",
+                "file": "project/generic/ceph/ceph-network-configuration.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "ceph-setup"
+              "title": "ceph-network-configuration"
             }
           }
         ]
@@ -170,9 +170,17 @@
   },
   "active": "bc917540398a7a11",
   "lastOpenFiles": [
+    "project/generic/ceph/replace-osd-mon-node.md",
     "project/generic/ceph/ceph-stretched-cluster-guide.md",
+    "project/generic/ceph/ceph-network-configuration.md",
+    "project/generic/ceph/replace-osd-only-node.md",
+    "project/generic/ceph/ceph-server-replacement.md",
+    "project/generic/ceph/ceph-witness-replacement.md",
     "project/generic/ceph/ceph-stretch-cluster-from-scratch.md",
+    "project/generic/ceph/replace-witness-mon-node.md",
     "project/generic/ceph/ceph-setup.md",
+    "project/generic/ceph/cephx-key-migration.md",
+    "project/generic/ceph/ceph-cluster-expansion.md",
     "project/generic/ceph/ceph-conf.md",
     "project/ampang/readme.md",
     "project/hmax/readme.md",
@@ -190,16 +198,8 @@
     "project/cloud-foundary/08-cf_cleanup.md",
     "project/proxmox/06-snapshot_complete_setup.md",
     "project/windows/19-activate-windows.md",
-    "project/readme.md",
     "project/windows",
-    "project/linux/10-linux_user_config.md",
     "project/postgresql",
-    "project/cloud-foundary/16-fix-redis-issue.md",
-    "project/proxmox/03-stop_start_vm.md",
-    "project/cloud-foundary/14-cf-update-environment.md",
-    "r160a/00-index.md",
-    "project/cloud-foundary/09-cf_org_space_creation.md",
-    "project/ceph/07-ceph_cleanup_residual_pvc_csi_volumes.md",
     "ceph/desktop.ini",
     "ceph",
     "Untitled.canvas",
